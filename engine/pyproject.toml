@@ -1,0 +1,32 @@
+[project]
+name = "shout-engine"
+version = "0.1.0"
+description = "Local WhisperX transcription engine for Shout, driven over stdio"
+requires-python = "==3.12.*"
+dependencies = [
+    "whisperx==3.8.6",
+    "numpy>=2.1.0",
+    "breame==0.1.2",
+]
+
+[project.scripts]
+shout-engine = "shout_engine.cli:run"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shout_engine"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: needs a downloaded model; run with `pytest -m slow`",
+]
+addopts = "-m 'not slow'"
