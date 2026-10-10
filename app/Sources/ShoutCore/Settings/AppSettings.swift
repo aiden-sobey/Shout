@@ -53,6 +53,10 @@ public final class AppSettings {
     public var beamSize: Int { didSet { store.set(beamSize, forKey: Key.beamSize) } }
     public var vadMethod: String { didSet { store.set(vadMethod, forKey: Key.vadMethod) } }
     public var hotkey: Hotkey { didSet { store.set(try? JSONEncoder().encode(hotkey), forKey: Key.hotkey) } }
+    /// nil records from the system default input.
+    public var microphone: Microphone? {
+        didSet { store.set(microphone.flatMap { try? JSONEncoder().encode($0) }, forKey: Key.microphone) }
+    }
     public var insertionMethod: InsertionMethod {
         didSet { store.set(insertionMethod.rawValue, forKey: Key.insertionMethod) }
     }
@@ -77,6 +81,7 @@ public final class AppSettings {
         vadMethod = store.string(forKey: Key.vadMethod) ?? Defaults.vadMethod
         hotkey = store.data(forKey: Key.hotkey).flatMap { try? JSONDecoder().decode(Hotkey.self, from: $0) }
             ?? .default
+        microphone = store.data(forKey: Key.microphone).flatMap { try? JSONDecoder().decode(Microphone.self, from: $0) }
         insertionMethod = store.string(forKey: Key.insertionMethod).flatMap(InsertionMethod.init) ?? .paste
         restoreClipboard = store.object(forKey: Key.restoreClipboard) as? Bool ?? true
         restoreDelayMs = store.object(forKey: Key.restoreDelayMs) as? Int ?? Defaults.restoreDelayMs
@@ -122,6 +127,7 @@ public final class AppSettings {
         static let beamSize = "beamSize"
         static let vadMethod = "vadMethod"
         static let hotkey = "hotkey"
+        static let microphone = "microphone"
         static let insertionMethod = "insertionMethod"
         static let restoreClipboard = "restoreClipboard"
         static let restoreDelayMs = "restoreDelayMs"

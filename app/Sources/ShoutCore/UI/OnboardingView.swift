@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// First-run window: one row per permission, closes itself once everything is granted.
+/// First-run window: one row per permission, then which microphone to use.
 struct OnboardingView: View {
     let permissions: Permissions
+    let settings: AppSettings
+    let microphones: MicrophoneList
     let hotkeyName: String
     /// True if the event tap couldn't start even though Accessibility looks granted.
     let hotkeyTapFailed: Bool
@@ -48,6 +50,21 @@ struct OnboardingView: View {
                 }
             }
 
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "mic")
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Which microphone").font(.headline)
+                    Text("You can change this later in Settings.").font(.callout).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                MicrophonePicker(settings: settings, microphones: microphones)
+                    .frame(maxWidth: 220, alignment: .trailing)
+            }
+
             Divider()
 
             HStack {
@@ -76,6 +93,7 @@ private struct PermissionRow: View {
             Image(systemName: granted ? "checkmark.circle.fill" : "circle")
                 .font(.title2)
                 .foregroundStyle(granted ? Color.green : Color.secondary)
+                .frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
                 Text(detail).font(.callout).foregroundStyle(.secondary)

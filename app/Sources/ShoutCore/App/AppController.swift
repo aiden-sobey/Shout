@@ -6,6 +6,7 @@ import SwiftUI
 public final class AppController: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let settings = AppSettings()
     private let permissions = Permissions()
+    private let microphones = MicrophoneList()
     private let downloader = ModelDownloader()
     private let recorder = AudioRecorder()
     private let hud = RecordingHUD()
@@ -104,6 +105,10 @@ public final class AppController: NSObject, NSApplicationDelegate, NSWindowDeleg
             guard let self else { return }
             monitor.update(hotkey: settings.hotkey)
         }
+        observeChanges { [weak self] in
+            guard let self else { return }
+            recorder.inputDeviceUID = settings.microphone?.uid
+        }
         var firstConfig = true
         observeChanges { [weak self] in
             guard let self else { return }
@@ -157,6 +162,7 @@ public final class AppController: NSObject, NSApplicationDelegate, NSWindowDeleg
             let view = SettingsView(
                 settings: settings,
                 model: SettingsModel(hotkeyRecorder: recorder),
+                microphones: microphones,
                 supervisor: supervisor,
                 downloader: downloader
             )
@@ -194,6 +200,8 @@ public final class AppController: NSObject, NSApplicationDelegate, NSWindowDeleg
     private func onboardingView() -> OnboardingView {
         OnboardingView(
             permissions: permissions,
+            settings: settings,
+            microphones: microphones,
             hotkeyName: settings.hotkey.displayName,
             hotkeyTapFailed: hotkeyTapFailed,
             onRelaunch: { [weak self] in self?.relaunch() },

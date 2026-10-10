@@ -29,12 +29,13 @@ final class SettingsModel {
 struct SettingsView: View {
     @Bindable var settings: AppSettings
     let model: SettingsModel
+    let microphones: MicrophoneList
     let supervisor: EngineSupervisor
     let downloader: ModelDownloader
 
     var body: some View {
         TabView {
-            GeneralTab(settings: settings, model: model)
+            GeneralTab(settings: settings, model: model, microphones: microphones)
                 .tabItem { Label("General", systemImage: "gearshape") }
             ModelTab(settings: settings, supervisor: supervisor, downloader: downloader)
                 .tabItem { Label("Model", systemImage: "waveform") }
@@ -49,12 +50,16 @@ struct SettingsView: View {
 private struct GeneralTab: View {
     @Bindable var settings: AppSettings
     let model: SettingsModel
+    let microphones: MicrophoneList
 
     var body: some View {
         Form {
             Section("Push to talk") {
                 LabeledContent("Hotkey") {
                     HotkeyRecorderView(settings: settings, model: model.hotkeyRecorder)
+                }
+                LabeledContent("Microphone") {
+                    MicrophonePicker(settings: settings, microphones: microphones)
                 }
             }
             Section("Inserting text") {

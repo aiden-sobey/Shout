@@ -15,7 +15,8 @@ public enum AudioRecorderError: LocalizedError {
     }
 }
 
-/// Records the default microphone as 16 kHz mono Float32, the format Whisper wants.
+/// Records the chosen microphone (or the system default) as 16 kHz mono Float32, the format
+/// Whisper wants.
 ///
 /// The audio engine only runs between `start()` and `stop()`/`cancel()`, so the macOS
 /// microphone indicator is only on while you're dictating.
@@ -33,6 +34,9 @@ public final class AudioRecorder: @unchecked Sendable {
     public var onLevel: (@Sendable (Float) -> Void)?
     /// Called on the main queue if the input device changes while recording.
     public var onInterrupted: (@Sendable () -> Void)?
+    /// UID of the microphone to record from; nil follows the system default input. If that
+    /// microphone isn't connected when recording starts, the system default is used instead.
+    public var inputDeviceUID: String?
 
     private let targetFormat = AVAudioFormat(
         commonFormat: .pcmFormatFloat32,
@@ -49,6 +53,7 @@ public final class AudioRecorder: @unchecked Sendable {
             samples.removeAll(keepingCapacity: true)
         }
         let input = engine.inputNode
+        selectInputDevice(on: input)
         let inputFormat = input.outputFormat(forBus: 0)
         guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
             throw AudioRecorderError.noInputDevice
@@ -65,7 +70,11 @@ public final class AudioRecorder: @unchecked Sendable {
         }
         configObserver = NotificationCenter.default.addObserver(
             forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main
-        ) { [weak self] _ in
+        ) { [weak self, engine] _ in
+            // Choosing a device in selectInputDevice also posts this, about 100 ms later,
+            // but the engine carries on recording. A real change (the device unplugged, a
+            // new default input) stops the engine.
+            guard !engine.isRunning else { return }
             Log.audio.notice("Audio configuration changed while recording")
             self?.onInterrupted?()
         }
@@ -106,6 +115,21 @@ public final class AudioRecorder: @unchecked Sendable {
         removeObserver()
         // A fresh engine picks up the current default input device next time.
         engine = AVAudioEngine()
+    }
+
+    /// Points the engine's input at the chosen microphone. Without this, AVAudioEngine records
+    /// from the system default input. Must run before the input format is read.
+    private func selectInputDevice(on input: AVAudioInputNode) {
+        guard let uid = inputDeviceUID else { return }
+        guard let device = AudioDevices.deviceID(forUID: uid) else {
+            Log.audio.notice("Chosen microphone isn't connected; using the system default")
+            return
+        }
+        do {
+            try input.auAudioUnit.setDeviceID(device)
+        } catch {
+            Log.audio.error("Couldn't switch to the chosen microphone, using the system default: \(error.localizedDescription)")
+        }
     }
 
     private func removeObserver() {
